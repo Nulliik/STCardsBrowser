@@ -1,12 +1,12 @@
 {
-    "display_name": "CleanBotBrowser",
+    "display_name": "STCardsBrowser",
     "loading_order": 100,
     "requires": [],
     "optional": [],
     "js": "src/index.js",
     "css": "src/styles/main.css",
     "author": "",
-    "version": "1.0.1",
-    "homePage": "",
-    "description": "WIP BotBrowser fork."
+    "version": "1.0.2",
+    "homePage": "https://github.com/Nulliik/STCardsBrowser",
+    "description": "A full-screen SillyTavern browser for character cards, lorebooks, collections, trends, and your local library."
 }

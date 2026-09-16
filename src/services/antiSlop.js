@@ -33,7 +33,7 @@ export const antiSlopDefaults = {
     antiSlopThreshold: 10,
     antiSlopUseSourcePresets: true,
     antiSlopPresetWeight: 1,
-    antiSlopShowBadges: false,
+    antiSlopShowBadges: true,
     antiSlopAlwaysShowLabels: false,
     antiSlopMinTokens: 600,
     antiSlopLowTokenScore: 3,
@@ -621,9 +621,22 @@ export function scoreAntiSlop(card, settings = {}) {
     }
 
     const roundedScore = Number.isFinite(score) ? Math.round(score * 10) / 10 : 0;
+    const positiveSignalLabels = new Set([
+        'Has lorebook',
+        'Has examples or alternates',
+        'Has gallery',
+        'Has system prompt',
+        'Has post-history prompt',
+        'Verified or approved',
+        'Featured by source',
+        'Strong engagement',
+    ]);
+    const uniqueReasons = Array.from(new Set(reasons));
     return {
         score: roundedScore,
-        reasons: Array.from(new Set(reasons)).slice(0, 4),
+        reasons: uniqueReasons.slice(0, 4),
+        warningReasons: uniqueReasons.filter(reason => !positiveSignalLabels.has(reason)).slice(0, 4),
+        positiveSignals: uniqueReasons.filter(reason => positiveSignalLabels.has(reason)).slice(0, 4),
         matchedRules: Array.from(new Set(matchedRules)),
         flagged: roundedScore >= settings.antiSlopThreshold,
     };
@@ -635,6 +648,8 @@ export function annotateAntiSlop(card, settings = {}) {
         ...card,
         antiSlopScore: result.score,
         antiSlopReasons: result.reasons,
+        antiSlopWarningReasons: result.warningReasons,
+        antiSlopPositiveSignals: result.positiveSignals,
         antiSlopMatchedRules: result.matchedRules,
         antiSlopFlagged: result.flagged,
     };

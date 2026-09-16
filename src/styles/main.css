@@ -1477,27 +1477,89 @@ body .bot-browser-detail-modal {
     top: 8px;
     left: 8px;
     z-index: 2;
-    padding: 5px 8px;
-    border-radius: 6px;
-    border: 1px solid rgba(167, 243, 208, 0.78);
-    background: rgba(4, 120, 87, 0.88);
+    padding: 5px 7px;
+    border-radius: 7px;
+    border: 1px solid rgba(148, 163, 184, 0.72);
+    background: rgba(30, 41, 59, 0.92);
     color: #ecfdf5;
-    font-size: 0.68em;
+    font-size: 0.67em;
     font-weight: 800;
     line-height: 1;
     letter-spacing: 0;
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.55);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.bot-browser-anti-slop-badge.clear {
+    background: rgba(4, 120, 87, 0.92);
+    border-color: rgba(167, 243, 208, 0.82);
+    color: #ecfdf5;
+}
+
+.bot-browser-anti-slop-badge.review {
+    background: rgba(180, 83, 9, 0.94);
+    border-color: rgba(253, 230, 138, 0.9);
+    color: #fffbeb;
 }
 
 .multi-select-mode .bot-browser-anti-slop-badge {
     top: 38px;
 }
 
-.bot-browser-anti-slop-badge.flagged {
-    background: rgba(180, 83, 9, 0.92);
-    border-color: rgba(253, 230, 138, 0.86);
-    color: #fffbeb;
+.bot-browser-detail-section.bot-browser-anti-slop-summary {
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(15, 23, 42, 0.34);
+}
+
+.bot-browser-anti-slop-summary.clear {
+    border-color: rgba(110, 231, 183, 0.42);
+    background: rgba(6, 78, 59, 0.18);
+}
+
+.bot-browser-anti-slop-summary.review {
+    border-color: rgba(251, 191, 36, 0.48);
+    background: rgba(120, 53, 15, 0.16);
+}
+
+.bot-browser-anti-slop-summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+}
+
+.bot-browser-anti-slop-summary-header strong {
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.09);
+}
+
+.bot-browser-anti-slop-signals {
+    margin-top: 10px;
+    font-size: 0.9em;
+}
+
+.bot-browser-anti-slop-signals > span {
+    font-weight: 700;
+}
+
+.bot-browser-anti-slop-signals ul {
+    margin: 5px 0 0;
+    padding-left: 18px;
+}
+
+.bot-browser-anti-slop-signals.warning > span,
+.bot-browser-anti-slop-signals.warning li::marker {
+    color: #fbbf24;
+}
+
+.bot-browser-anti-slop-signals.positive > span,
+.bot-browser-anti-slop-signals.positive li::marker {
+    color: #6ee7b7;
 }
 
 .bot-browser-card-image {

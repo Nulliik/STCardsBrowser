@@ -25,10 +25,26 @@ function formatStatRating(value) {
     return number.toFixed(1);
 }
 
-export function buildDetailModalHTML(cardName, imageUrl, isLorebook, cardCreator, tags, creator, websiteDesc, description, descPreview, personality, scenario, firstMessage, alternateGreetings, exampleMsg, entries, entriesCount, metadata, isBookmarked = false, isRandom = false, isImported = false, characterExistsInST = false, sourceUrlData = null, chubFeatures = null, isLocalContent = false, isFavoriteCreator = false) {
+export function buildDetailModalHTML(cardName, imageUrl, isLorebook, cardCreator, tags, creator, websiteDesc, description, descPreview, personality, scenario, firstMessage, alternateGreetings, exampleMsg, entries, entriesCount, metadata, isBookmarked = false, isRandom = false, isImported = false, characterExistsInST = false, sourceUrlData = null, chubFeatures = null, isLocalContent = false, isFavoriteCreator = false, antiSlop = {}) {
     const safeImageUrl = sanitizeImageUrl(imageUrl);
     const safeSourceUrl = sourceUrlData ? sanitizeHttpUrl(sourceUrlData.url) : '';
     const safeSourceServiceName = sourceUrlData ? escapeHTML(sourceUrlData.serviceName || 'website') : '';
+    const antiSlopScore = typeof antiSlop.score === 'number' ? antiSlop.score : null;
+    const antiSlopWarnings = Array.isArray(antiSlop.warnings) ? antiSlop.warnings : [];
+    const antiSlopPositives = Array.isArray(antiSlop.positives) ? antiSlop.positives : [];
+    const antiSlopRules = Array.isArray(antiSlop.matchedRules) ? antiSlop.matchedRules : [];
+    const antiSlopStatus = antiSlop.flagged ? 'review' : antiSlopScore < 0 ? 'clear' : 'neutral';
+    const antiSlopLabel = antiSlop.flagged ? 'Needs review' : antiSlopScore < 0 ? 'Clear signals' : 'Neutral signal';
+    const antiSlopSummaryHTML = antiSlopScore === null ? '' : `
+                <div class="bot-browser-detail-section bot-browser-anti-slop-summary ${antiSlopStatus}">
+                    <div class="bot-browser-anti-slop-summary-header">
+                        <span><i class="fa-solid ${antiSlop.flagged ? 'fa-triangle-exclamation' : antiSlopScore < 0 ? 'fa-shield-halved' : 'fa-circle-info'}"></i> Anti-Slop: ${antiSlopLabel}</span>
+                        <strong>AS risk ${antiSlopScore >= 0 ? '+' : ''}${escapeHTML(String(antiSlopScore))}</strong>
+                    </div>
+                    ${antiSlopWarnings.length ? `<div class="bot-browser-anti-slop-signals warning"><span>Needs attention</span><ul>${antiSlopWarnings.map(reason => `<li>${escapeHTML(reason)}</li>`).join('')}</ul></div>` : ''}
+                    ${antiSlopPositives.length ? `<div class="bot-browser-anti-slop-signals positive"><span>Positive signals</span><ul>${antiSlopPositives.map(signal => `<li>${escapeHTML(signal)}</li>`).join('')}</ul></div>` : ''}
+                    ${antiSlopRules.length ? `<div class="bot-browser-anti-slop-signals rules"><span>Custom rules</span><ul>${antiSlopRules.map(rule => `<li>${escapeHTML(rule)}</li>`).join('')}</ul></div>` : ''}
+                </div>`;
 
     // Random buttons HTML (only shown when viewing a random card)
     const randomButtonsHTML = isRandom ? `
@@ -115,6 +131,8 @@ export function buildDetailModalHTML(cardName, imageUrl, isLorebook, cardCreator
                     ${randomButtonsHTML}
                     ${localActionsHTML}
                 </div>
+
+                ${antiSlopSummaryHTML}
 
                 <div class="bot-browser-detail-image ${safeImageUrl ? 'clickable-image' : ''}" style="background-image: url('${safeImageUrl}');" ${safeImageUrl ? `data-image-url="${safeImageUrl}" title="Click to enlarge"` : ''}>
                     ${!safeImageUrl ? '<i class="fa-solid fa-user"></i>' : ''}

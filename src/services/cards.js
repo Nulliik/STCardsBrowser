@@ -94,6 +94,8 @@ export function filterCards(cards, filters, fuse, extensionName, extension_setti
             const {
                 antiSlopScore,
                 antiSlopReasons,
+                antiSlopWarningReasons,
+                antiSlopPositiveSignals,
                 antiSlopMatchedRules,
                 antiSlopFlagged,
                 antiSlopDimmed,

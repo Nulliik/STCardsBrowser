@@ -27,8 +27,11 @@ export function createCardHTML(card) {
     const antiSlopTitle = antiSlopReasons.length > 0
         ? `Anti-Slop score ${antiSlopScore >= 0 ? '+' : ''}${antiSlopScore}: ${antiSlopReasons.join('; ')}`
         : `Anti-Slop score ${antiSlopScore >= 0 ? '+' : ''}${antiSlopScore}`;
+    const antiSlopState = card.antiSlopFlagged ? 'review' : antiSlopScore < 0 ? 'clear' : 'neutral';
+    const antiSlopLabel = card.antiSlopFlagged ? 'Review' : antiSlopScore < 0 ? 'Clear' : 'Neutral';
+    const antiSlopIcon = card.antiSlopFlagged ? 'fa-triangle-exclamation' : antiSlopScore < 0 ? 'fa-shield-halved' : 'fa-circle-info';
     const antiSlopBadge = antiSlopScore !== null
-        ? `<div class="bot-browser-anti-slop-badge ${card.antiSlopFlagged ? 'flagged' : 'clean'}" title="${escapeHTML(antiSlopTitle)}">AS ${antiSlopScore >= 0 ? '+' : ''}${escapeHTML(String(antiSlopScore))}</div>`
+        ? `<div class="bot-browser-anti-slop-badge ${antiSlopState}" title="${escapeHTML(antiSlopTitle)}"><i class="fa-solid ${antiSlopIcon}"></i><span>AS ${antiSlopLabel}</span></div>`
         : '';
 
     return `
@@ -86,7 +89,7 @@ function formatCompact(num) {
 export function getOriginalMenuHTML(recentlyViewed, extensionVersion = '1.0.1') {
     return `
         <div class="bot-browser-header">
-            <h3>CleanBotBrowser <span style="font-size: 0.6em; font-weight: 400; color: rgba(255, 255, 255, 0.6);">v${escapeHTML(extensionVersion)}</span></h3>
+            <h3>STCardsBrowser <span style="font-size: 0.6em; font-weight: 400; color: rgba(255, 255, 255, 0.6);">v${escapeHTML(extensionVersion)}</span></h3>
             <div class="bot-browser-tabs">
                 <button class="bot-browser-tab active" data-tab="bots">Bots</button>
                 <button class="bot-browser-tab" data-tab="lorebooks">Lorebooks</button>

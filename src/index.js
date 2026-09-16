@@ -96,11 +96,10 @@ import {
 } from './services/corsProxy.js';
 
 // Extension version (from manifest.json)
-const EXTENSION_VERSION = '1.0.1';
+const EXTENSION_VERSION = '1.0.2';
 
 // Extension name and settings
-const extensionName = 'CleanBotBrowser';
-const legacyExtensionName = 'BotBrowser';
+const extensionName = 'STCardsBrowser';
 
 // State management
 const state = {
@@ -319,7 +318,7 @@ function getDefaultRandomServiceSettings() {
 // Default settings
 const defaultSettings = {
     enabled: true,
-    message: 'CleanBotBrowser Active!',
+    message: 'STCardsBrowser Active!',
     recentlyViewedEnabled: true,
     maxRecentlyViewed: 10,
     persistentSearchEnabled: true,
@@ -349,11 +348,6 @@ let importStats = {
 
 // Initialize settings
 function loadSettings() {
-    if (!extension_settings[extensionName] && extension_settings[legacyExtensionName]) {
-        extension_settings[extensionName] = { ...extension_settings[legacyExtensionName] };
-        saveSettingsDebounced();
-    }
-
     if (!extension_settings[extensionName]) {
         extension_settings[extensionName] = {};
     }
@@ -1438,7 +1432,7 @@ function setupSourceButtons(menu) {
                     cards = await loadLocalLibrary();
 
                     if (cards.length === 0) {
-                        toastr.info('No imports yet. Import characters using CleanBotBrowser to see them here!', 'My Imports', { timeOut: 4000 });
+                        toastr.info('No imports yet. Import characters using STCardsBrowser to see them here!', 'My Imports', { timeOut: 4000 });
                     }
 
                     console.log(`[CleanBotBrowser] Loaded ${cards.length} imported cards`);
@@ -2408,7 +2402,7 @@ function showSettingsModal() {
                     <div class="bb-settings-tab-content" data-content="anti-slop">
                         <div class="bb-setting-group">
                             <label><i class="fa-solid fa-wand-magic-sparkles"></i> Anti-Slop Quality Filter</label>
-                            <small>Scores low-effort cards across sources. Dim mode keeps flagged cards visible; hide mode removes them from the grid.</small>
+                            <small>Higher AS risk means more warning signals. Dim mode keeps flagged cards visible; hide mode removes them from the grid.</small>
                         </div>
 
                         <div class="bb-setting-group">
@@ -2437,7 +2431,7 @@ function showSettingsModal() {
                                 <input type="checkbox" id="bb-setting-anti-slop-badges" ${settings.antiSlopShowBadges ? 'checked' : ''}>
                                 <span>Show Anti-Slop Badges</span>
                             </label>
-                            <small>Shows score badges on cards so you can inspect why something was flagged.</small>
+                            <small>Shows Clear, Review, or Neutral status on cards. The numeric AS risk is available in the card details and on hover.</small>
                         </div>
 
                         <div class="bb-setting-group">
@@ -3089,7 +3083,7 @@ function showStatsModal() {
     console.log('[CleanBotBrowser] Stats modal opened');
 }
 
-// Create and show the CleanBotBrowser menu
+// Create and show the STCardsBrowser menu
 function createCleanBotBrowserMenu(options = {}) {
     if ($('#bot-browser-menu').length > 0) {
         if (options.fullscreen) {
@@ -3193,7 +3187,7 @@ function createCleanBotBrowserMenu(options = {}) {
     console.log('[CleanBotBrowser] Menu created and displayed');
 }
 
-// Close CleanBotBrowser menu
+// Close STCardsBrowser menu
 function closeCleanBotBrowserMenu() {
     const menu = document.getElementById('bot-browser-menu');
     const overlay = document.getElementById('bot-browser-overlay');
@@ -3246,8 +3240,8 @@ function addBotButton() {
     const botButton = $('<div>', {
         id: 'rm_button_bot',
         class: 'menu_button fa-solid fa-robot',
-        title: 'CleanBotBrowser',
-        'data-i18n': '[title]CleanBotBrowser'
+        title: 'STCardsBrowser',
+        'data-i18n': '[title]STCardsBrowser'
     });
 
     botButton.on('click', function(event) {

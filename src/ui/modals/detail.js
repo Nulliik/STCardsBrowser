@@ -1,4 +1,5 @@
 import { loadCardChunk } from '../../services/cache.js';
+import { annotateAntiSlop, shouldScoreAntiSlop } from '../../services/antiSlop.js';
 import { addToRecentlyViewed, isBookmarked, addBookmark, removeBookmark, isFavoriteCreator, toggleFavoriteCreator } from '../../storage/storage.js';
 import { buildDetailModalHTML } from '../templates/detailModal.js';
 import { prepareCardDataForModal } from '../../data/cardPreparation.js';
@@ -59,6 +60,17 @@ export async function showCardDetail(card, extensionName, extension_settings, st
 
     try {
         let fullCard = await loadFullCard(card);
+
+        // Search results may only contain a source preview. Recalculate against
+        // the hydrated card so signals such as the first message are not falsely
+        // reported as missing in the detail view.
+        const antiSlopSettings = extension_settings?.[extensionName] || {};
+        if (shouldScoreAntiSlop(antiSlopSettings)) {
+            fullCard = {
+                ...fullCard,
+                ...annotateAntiSlop(fullCard, antiSlopSettings),
+            };
+        }
 
         // Fetch gallery images for Chub cards (non-blocking, parallel with favorites/follows prefetch)
         const isChubCard = fullCard.isLiveChub || fullCard.service === 'chub' || fullCard.sourceService === 'chub';
@@ -503,7 +515,14 @@ function createDetailModal(fullCard, isRandom = false) {
         sourceUrlData,
         chubFeatures,
         isLocalContent,
-        creatorIsFollowed
+        creatorIsFollowed,
+        {
+            score: fullCard.antiSlopScore,
+            flagged: fullCard.antiSlopFlagged,
+            warnings: fullCard.antiSlopWarningReasons,
+            positives: fullCard.antiSlopPositiveSignals,
+            matchedRules: fullCard.antiSlopMatchedRules,
+        }
     );
 
     return { detailOverlay, detailModal };

@@ -1,6 +1,6 @@
 # Project Structure
 
-CleanBotBrowser is organized around the extension runtime first:
+STCardsBrowser is organized around the extension runtime first:
 
 ```text
 .
@@ -17,7 +17,7 @@ CleanBotBrowser is organized around the extension runtime first:
 │   ├── storage/               # Persistent settings, bookmarks, stats
 │   ├── utils/                 # Shared utilities and text preparation helpers
 │   └── data/                  # Data normalization helpers
-└── assets/images/             # Local extension images and service icons
+└── assets/images/             # Local extension images, service icons, and README media
 ```
 
 ## Where To Put New Code

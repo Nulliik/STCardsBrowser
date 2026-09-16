@@ -1,137 +1,96 @@
-# Note
-This repo if fork of original BotBrowser repository edited by Codex.
-Most of the functions are stable, some sources of bots are broken. Repo is cleaned from weird API found in original repo.
-Do not consider it fully safe
+# STCardsBrowser
 
-# Bot Browser
+**STCardsBrowser** is a full-screen card browser for [SillyTavern](https://github.com/SillyTavern/SillyTavern). Discover character cards, lorebooks, collections, trends, and your local library without leaving the app.
 
-Browse bots, lorebooks, collections, trends, and your own local SillyTavern library from one place.
+> This is an independently maintained fork of BotBrowser. The legacy remote archive/iframe path has been removed. Third-party integrations can change or become unavailable; review the source and use the extension at your own discretion.
 
-## How to Use
+## Highlights
 
-Click the bot icon next to the import bots button.
+- Browse characters, lorebooks, collections, and trends in one full-screen interface.
+- Search multiple live sources at once, with source-aware filters and NSFW controls.
+- Inspect cards in detail, open galleries and creator information, then import or update characters.
+- Keep bookmarks, favorite creators, recently viewed cards, and your local SillyTavern library close at hand.
+- Use dedicated views for local characters and World Info, including editors and direct chat navigation.
+- Designed for desktop and mobile layouts.
 
-The bot icon opens a safe full-screen browser inside SillyTavern. The old bundled standalone iframe app remains removed.
+## Screenshots and demos
 
-Browse cards, open the details, and import them into SillyTavern if you want them.
+<p align="center">
+  <img src="assets/images/readme/sources.png" alt="STCardsBrowser source selection screen" width="100%">
+</p>
 
-## Tabs
+<p align="center"><em>Choose a source, open the local library, or search across supported sources.</em></p>
 
-- **Bots** - Main source browser, Search All, AI Finder, and your local character library
-- **Lorebooks** - Live lorebook sources plus your local World Info files
-- **Trending** - Trending feeds from supported sources
-- **Bookmarks** - Saved cards and lorebooks
+<p align="center">
+  <img src="assets/images/readme/local-library.png" alt="STCardsBrowser local character library with search and filters" width="100%">
+</p>
 
+<p align="center"><em>Search, filter, and sort your local SillyTavern character library.</em></p>
 
-## Main Features
+<p align="center">
+  <img src="assets/images/readme/card-details.png" alt="STCardsBrowser character detail view with the explainable Anti-Slop review" width="100%">
+</p>
 
-- **Safe Full-Screen UI** - Full browser layout inside SillyTavern without the removed iframe bridge or remote archive bundle
-- **Search All** - Search across the main live bot sources in one place
-- **Detailed Card Modal** - Better details, gallery, creator notes, website summary, metadata, and import analysis
-- **Import / Update** - Import as new or update an existing local character when there is a likely match
-- **Bookmarks** - Save cards and lorebooks for later
-- **Favorite Creators** - Follow creators and get update pings when they post again
-- **Collections** - Browse and open collection pages directly
-- **Trending** - Separate trending feeds instead of burying them in normal browse
-- **Notifications** - Small in-app notifications for imports, bookmarks, follows, and similar actions
-- **Help Panel** - Search tips, AI tips, and shortcuts
-- **Update Banner** - Lets users know when a newer Bot Browser version exists
-- **Mobile Support** - Full-screen mode, filters, modal layouts, and local editors work much better on mobile now
+<p align="center"><em>Inspect a card, edit local characters, save it, or open a chat directly.</em></p>
 
-## Search
+<p align="center">
+  <img src="assets/images/readme/settings.png" alt="STCardsBrowser settings dialog with filtering controls" width="100%">
+</p>
 
-You can search normally, or use filters when a source supports them.
+<p align="center"><em>Configure filtering, display, search, randomization, anti-slop, and API behavior.</em></p>
 
-- **Search All** is for when you do not care which source the bot comes from
-- Use `+tag` to force a tag in
-- Use `-tag` to force a tag out
-- Use source-specific filters when the source supports them
-- Toggle which live sources Search All is allowed to use
-- Hide NSFW, blur NSFW, blur all cards, or hide locked-definition cards
+## Install
 
-## Local Library
+1. In SillyTavern, open **Extensions** and install this repository as an extension.
+2. Reload SillyTavern.
+3. Click the card-browser icon beside the character import controls to open STCardsBrowser.
 
-Bot Browser also works with your own SillyTavern content.
+## What you can browse
 
-### My Characters
+| Area | Includes |
+| --- | --- |
+| Characters | Live sources, Search All, AI Finder, and your local character library |
+| Lorebooks | Live lorebook sources and local World Info files |
+| Trending | Separate trending feeds from supported services |
+| Saved content | Bookmarks, recently viewed cards, and favorite creators |
 
-- search your local characters
-- sort and filter them
-- bookmark them
-- open a dedicated local character modal
-- inspect the real character fields instead of a thin import view
-- edit the card
-- jump straight into the SillyTavern chat
+## Search and safety
 
-### Your Lorebooks
+- Use **Search All** when the source does not matter.
+- Add `+tag` to require a tag or `-tag` to exclude one.
+- Apply source-specific filters where available.
+- Choose whether to hide NSFW cards, blur NSFW cards, blur all card art, or hide locked definitions.
 
-- search your local World Info files
-- sort and filter them
-- bookmark them
-- open a dedicated lorebook editor modal
-- inspect and edit entries
-- add or remove entries
+## Your lorebooks
 
-## Personal Features
+STCardsBrowser also works with local SillyTavern World Info files.
 
-- **My Characters**
-- **Favorite Creators**
+- Search, sort, and filter local lorebooks.
+- Bookmark lorebooks for later.
+- Inspect a book and open it in SillyTavern's World Info editor.
+- Edit entries in the built-in lorebook editor, including adding and removing entries.
 
-## Source Types
+## Favorite creators
 
-### Best Live Sources
+Follow a creator from any card's detail view to keep their work in one place. The **Favorite Creators** source aggregates new cards from supported services and can show update notifications when followed creators publish again.
 
-- Chub
-- JannyAI
-- Character Tavern
-- Sakura.fm
-- Wyvern
-- CharaVault
+## Anti-Slop signals
 
-### More Live Sources
+Anti-Slop is an optional, explainable quality heuristic—not a verdict on a creator or character. It scores visible card metadata such as definition depth, greetings, examples, tags, source signals, and configured custom rules.
 
-- Harpy.chat
-- RisuRealm
-- Backyard.ai
-- CrushOn.AI
-- Botify.ai
-- Joyland.ai
-- SpicyChat
-- Talkie AI
-- Saucepan.ai
-- 4chan `/aicg/`
-- MLPchag
-- Pygmalion
+- **Review** identifies cards that cross your warning threshold; you can dim or hide them.
+- **Clear** highlights cards with positive signals, such as examples, lorebooks, verified status, or strong engagement.
+- Open a card to see the score and the exact warning and positive signals that contributed to it.
+- Configure thresholds, source presets, weights, and custom rules under **Settings → Anti-Slop**.
 
-### Lorebook Sources
+## Supported sources
 
-- Chub Lorebooks
-- Wyvern Lorebooks
+Available sources can change as third-party services evolve. The extension includes integrations for Chub, JannyAI, Character Tavern, Sakura.fm, Wyvern, CharaVault, Harpy.chat, RisuRealm, Backyard.ai, CrushOn.AI, Botify.ai, Joyland.ai, SpicyChat, Talkie AI, Saucepan.ai, MLPchag, Pygmalion, and selected archive/trending feeds.
 
-### Trending Sources
+## Project layout
 
-- Chub
-- Character Tavern
-- Wyvern
-- Backyard.ai
-- JannyAI
-- CAIBotList
-- RisuRealm
+See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for a maintainer-oriented map of the codebase.
 
-### Archive Snapshots
+## License
 
-- Chub Archive
-- RisuRealm Archive
-- Catbox
-- 4chan `/aicg/` archive
-- Desuarchive
-- Webring
-- Nyai.me
-
-## Settings
-
-Bot Browser now has a much bigger settings surface than before.
-
-- **Search** defaults for Search All and randomization
-- **Safety** for NSFW handling
-- **Display** options
+[WTFPL+](LICENSE)
