@@ -86,7 +86,7 @@ function formatCompact(num) {
     return String(Math.trunc(value));
 }
 
-export function getOriginalMenuHTML(recentlyViewed, extensionVersion = '1.0.1') {
+export function getOriginalMenuHTML(recentlyViewed, extensionVersion = '1.0.3') {
     return `
         <div class="bot-browser-header">
             <h3>STCardsBrowser <span style="font-size: 0.6em; font-weight: 400; color: rgba(255, 255, 255, 0.6);">v${escapeHTML(extensionVersion)}</span></h3>
@@ -217,6 +217,10 @@ export function getOriginalMenuHTML(recentlyViewed, extensionVersion = '1.0.1') 
                 <button class="bot-browser-source" data-source="sakura">
                     ${createServiceIconHTML('sakura', { background: '#1a0a1a' })}
                     <span>Sakura.fm</span>
+                </button>
+                <button class="bot-browser-source" data-source="spicychat">
+                    <div class="bot-browser-source-icon bot-browser-spicychat-icon"><i class="fa-solid fa-pepper-hot"></i></div>
+                    <span>SpicyChat</span>
                 </button>
                 <button class="bot-browser-source bb-sakura-auth-only" data-source="sakura_favorites" style="display:none;">
                     <div class="bot-browser-source-icon" style="background: linear-gradient(135deg, #3d1a4e, #1a0a2a); display: flex; align-items: center; justify-content: center; font-size: 22px; color: #f0abfc;">

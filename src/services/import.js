@@ -15,7 +15,7 @@ import { getCrushonCharacter, transformFullCrushonCharacter } from '../services/
 import { getHarpyCharacter, transformFullHarpyCharacter } from '../services/apis/harpyApi.js';
 import { getBotifyBot, transformFullBotifyBot } from '../services/apis/botifyApi.js';
 import { transformFullJoylandBot } from '../services/apis/joylandApi.js';
-import { transformFullSpicychatCharacter } from '../services/apis/spicychatApi.js';
+import { hydrateSpicychatCard } from '../services/apis/spicychatApi.js';
 import { getTalkieCharacter, transformFullTalkieCharacter } from '../services/apis/talkieApi.js';
 import { extractCharacterDataFromPngArrayBuffer } from './embeddedCardParser.js';
 import { hostnameMatches, htmlToPlainText, secureRandomToken } from '../utils/utils.js';
@@ -53,7 +53,8 @@ export async function importCharacterFile(file, preservedName = null) {
         throw new Error(data.error);
     }
 
-    const avatarFileName = data.file_name;
+    // /api/characters/import returns the basename; character avatars include .png.
+    const avatarFileName = `${data.file_name}.png`;
 
     // Refresh character list
     await getCharacters();
@@ -224,7 +225,8 @@ export async function importCardToSillyTavern(card, extensionName, extension_set
         console.error('[CleanBotBrowser] Error importing card:', error);
 
         // Fallback: If image fetch fails due to CORS, try importing just the character data
-        if (error.message.includes('CORS') || error.message.includes('tainted') || error.message.includes('Failed to load image')) {
+        const isSpicychat = card.isSpicychat || card.service === 'spicychat' || card.sourceService === 'spicychat';
+        if (!isSpicychat && (error.message.includes('CORS') || error.message.includes('tainted') || error.message.includes('Failed to load image'))) {
             try {
                 console.log('[CleanBotBrowser] Image fetch failed, attempting JSON-only import');
                 toastr.info('Image blocked by CORS. Importing character data without image...', card.name);
@@ -474,8 +476,11 @@ async function importCharacter(card, extensionName, extension_settings, importSt
 
     if (card.isSpicychat || card.service === 'spicychat' || card.sourceService === 'spicychat') {
         console.log('[CleanBotBrowser] Importing SpicyChat card:', card.name);
-        const transformed = transformFullSpicychatCharacter(card);
-        return await importApiCard({ ...card, ...transformed }, extensionName, extension_settings, importStats, 'spicychat', null, null);
+        const fullCard = await hydrateSpicychatCard(card);
+        if (!fullCard.definitionVisible) {
+            toastr.warning('This creator has hidden the definition. Only public fields and the greeting will be imported.', 'SpicyChat: partial import');
+        }
+        return await importApiCard(fullCard, extensionName, extension_settings, importStats, 'spicychat', null, null);
     }
 
     if (card.isTalkie || card.service === 'talkie' || card.sourceService === 'talkie') {
@@ -1572,7 +1577,7 @@ async function importApiCard(card, extensionName, extension_settings, importStat
     let fullCard = card;
 
     // Fetch full data if needed
-    if ((!card.first_mes && !card.first_message) && card.id) {
+    if ((!card.first_mes && !card.first_message) && card.id && typeof getFn === 'function' && typeof transformFn === 'function') {
         try {
             console.log(`[CleanBotBrowser] Fetching full ${serviceName} character data for import:`, card.id);
             const rawData = await getFn(card.id);

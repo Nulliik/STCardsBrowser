@@ -3,6 +3,21 @@ import { proxiedFetch } from '../corsProxy.js';
 
 const QUILLGEN_API_URL = 'https://quillgen.app/v1/public/api/browse';
 
+// Also clean URLs produced by older versions and retained in cached cards.
+function cleanCardUrl(value) {
+    if (!value) return value;
+    try {
+        const url = new URL(value, `${QUILLGEN_API_URL}/`);
+        if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password) return '';
+        for (const name of [...url.searchParams.keys()]) {
+            if (/^(key|api_key|apikey)$/i.test(name)) url.searchParams.delete(name);
+        }
+        return url.href;
+    } catch {
+        return '';
+    }
+}
+
 /**
  * Load characters from QuillGen API.
  * Without API key: returns public characters only.
@@ -43,7 +58,7 @@ export async function loadQuillgenIndex() {
         const data = await response.json();
         const cards = data.cards || [];
 
-        const mappedCards = cards.map(card => transformQuillgenCard(card, apiKey));
+        const mappedCards = cards.map(card => transformQuillgenCard(card));
 
         const ownCount = mappedCards.filter(c => c.is_own).length;
         const publicCount = mappedCards.length - ownCount;
@@ -73,13 +88,18 @@ export async function fetchQuillgenCard(card) {
     const settings = extension_settings?.['CleanBotBrowser'] || {};
     const apiKey = settings.quillgenApiKey;
 
-    const cardUrl = card.image_url;
+    const cardUrl = cleanCardUrl(card.image_url);
+    if (!cardUrl) {
+        toastr.error('QuillGen card has no valid download URL');
+        return null;
+    }
     // Log the URL without the key for security
     const logUrl = cardUrl.split('?')[0];
     console.log('[CleanBotBrowser] Fetching QuillGen card from:', logUrl);
 
     const fetchOptions = {};
-    if (apiKey && apiKey.trim() !== '') {
+    // Never send the account key to a CDN or another origin supplied by a card.
+    if (apiKey && apiKey.trim() !== '' && new URL(cardUrl).origin === new URL(QUILLGEN_API_URL).origin) {
         fetchOptions.headers = { 'Authorization': `Bearer ${apiKey}` };
     }
 
@@ -113,30 +133,20 @@ export async function fetchQuillgenCard(card) {
 /**
  * Transform a QuillGen card to CleanBotBrowser format
  * @param {Object} card - Raw card from QuillGen API
- * @param {string} apiKey - Optional API key for authenticated URLs
  * @returns {Object} Card in CleanBotBrowser format
  */
-function transformQuillgenCard(card, apiKey) {
-    const appendApiKey = (url) => {
-        if (!apiKey || !url) return url;
-        const separator = url.includes('?') ? '&' : '?';
-        return `${url}${separator}key=${encodeURIComponent(apiKey)}`;
-    };
-
+function transformQuillgenCard(card) {
     // Use the optimized avatar endpoint for browsing (bandwidth saving)
     // Default to 300px WebP as per API docs
-    let avatarUrl = card.avatar_url;
+    let avatarUrl = cleanCardUrl(card.avatar_url);
     if (card.id) {
-        avatarUrl = `https://quillgen.app/v1/public/api/browse/characters/${card.id}/avatar?size=300&format=webp`;
-    } else {
-        // Fallback if no ID (shouldn't happen)
-        avatarUrl = appendApiKey(card.avatar_url);
+        avatarUrl = `${QUILLGEN_API_URL}/characters/${encodeURIComponent(card.id)}/avatar?size=300&format=webp`;
     }
 
     return {
         ...card,
         avatar_url: avatarUrl,
-        image_url: appendApiKey(card.image_url),
+        image_url: cleanCardUrl(card.image_url),
         service: 'quillgen',
         chunk: null // QuillGen cards don't use chunks - they're fetched directly
     };

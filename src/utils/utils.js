@@ -269,6 +269,11 @@ export function getSourceUrl(card) {
         }
     }
 
+    // SpicyChat
+    if (card.isSpicychat || service === 'spicychat') {
+        if (card.id) return { url: `https://spicychat.ai/chatbot/${encodeURIComponent(card.id)}`, serviceName: 'SpicyChat' };
+    }
+
     // BotBooru
     if (card.isBotbooru || service === 'botbooru' || service.includes('botbooru')) {
         if (card.url) {

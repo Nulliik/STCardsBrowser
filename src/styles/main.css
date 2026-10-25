@@ -1,5 +1,46 @@
 /* Bot Browser Extension Styles */
 
+.bot-browser-spicychat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffc3a3;
+    background: linear-gradient(135deg, #9e3145, #482143);
+    font-size: 28px;
+}
+
+.bot-browser-spicychat-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px 24px;
+    margin-top: 16px;
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.bot-browser-spicychat-controls label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bot-browser-spicychat-controls select {
+    padding: 7px 10px;
+    border-radius: 6px;
+    color: inherit;
+    background: #25252d;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.bot-browser-spicychat-hint {
+    flex-basis: 100%;
+    font-size: 12px;
+    opacity: 0.7;
+}
+
 /* Update Banner - subtle notification at top */
 .bot-browser-update-banner {
     display: flex;
@@ -647,11 +688,17 @@ body #bot-browser-menu.bot-browser-menu-fullscreen {
     bottom: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
+    height: 100dvh !important;
     max-width: none !important;
     max-height: none !important;
     transform: none !important;
     margin: 0 !important;
-    padding: clamp(14px, 2vw, 24px) !important;
+    --bot-browser-frame-padding: clamp(14px, 2vw, 24px);
+    padding:
+        max(var(--bot-browser-frame-padding), calc(env(safe-area-inset-top, 0px) + 8px))
+        max(var(--bot-browser-frame-padding), calc(env(safe-area-inset-right, 0px) + 8px))
+        max(var(--bot-browser-frame-padding), var(--bot-browser-navigation-clearance, 0px), calc(env(safe-area-inset-bottom, 0px) + 12px))
+        max(var(--bot-browser-frame-padding), calc(env(safe-area-inset-left, 0px) + 8px)) !important;
     border-radius: 0 !important;
     border: none !important;
     box-sizing: border-box !important;
@@ -672,6 +719,14 @@ body #bot-browser-menu.bot-browser-menu-fullscreen.closing {
     width: min(100%, 1500px);
     margin: 0 auto;
     min-height: 0;
+}
+
+/* Some Android browsers report a zero inset with system navigation overlaid.
+   Keep a touch-device fallback as well as the reported safe-area clearance. */
+@media (pointer: coarse), (max-width: 767px) {
+    #bot-browser-menu.bot-browser-menu-fullscreen {
+        --bot-browser-navigation-clearance: 48px;
+    }
 }
 
 #bot-browser-menu.bot-browser-menu-fullscreen .bot-browser-header {
@@ -2433,6 +2488,7 @@ body .bot-browser-detail-modal {
 /* Bottom Action Buttons */
 .bot-browser-bottom-actions {
     display: flex;
+    flex-shrink: 0;
     flex-direction: row;
     gap: 12px;
     align-items: center;

@@ -33,7 +33,7 @@ import { browseCrushonCharacters, searchCrushonCharacters, transformCrushonCard,
 import { searchHarpyCharacters, transformHarpyCard, harpyApiState, resetHarpyState } from '../services/apis/harpyApi.js';
 import { searchBotify, transformBotifyCard, botifyApiState, resetBotifyState, BOTIFY_SORT_OPTIONS } from '../services/apis/botifyApi.js';
 import { getJoylandHomepage, browseJoylandBots, searchJoylandBots, transformJoylandHomepageCard, transformJoylandCard, joylandApiState, resetJoylandState, JOYLAND_SORT_TYPES, JOYLAND_CATEGORIES } from '../services/apis/joylandApi.js';
-import { searchSpicychat, transformSpicychatCard, spicychatApiState, resetSpicychatState, SPICYCHAT_SORT_OPTIONS } from '../services/apis/spicychatApi.js';
+import { searchSpicychat, transformSpicychatCard, spicychatApiState, SPICYCHAT_SORT_OPTIONS, SPICYCHAT_BROWSER_SORTS, getSpicychatSort } from '../services/apis/spicychatApi.js';
 import { browseTalkieCharacters, searchTalkieCharacters, transformTalkieCard, talkieApiState, resetTalkieState } from '../services/apis/talkieApi.js';
 
 // JannyAI API state for pagination
@@ -67,7 +67,7 @@ export function getJannyApiState() {
 }
 
 function isServerPagedProvider(state) {
-    return !!(state.isJannyAI || state.isCharacterTavern || state.isWyvern || state.isRisuRealm || state.isSaucepan || state.isBotbooru
+    return !!(state.isJannyAI || state.isCharacterTavern || state.isWyvern || state.isRisuRealm || state.isSaucepan || state.isBotbooru || state.isSpicychat
         || state.isJannyAITrending || state.isChubTrending || state.isWyvernTrending || state.isRisuRealmTrending);
 }
 
@@ -127,10 +127,21 @@ function buildLiveQueryState(state, extensionName, extension_settings) {
         ctAdvancedFilters: state.ctAdvancedFilters || null,
         wyvernAdvancedFilters: state.wyvernAdvancedFilters || null,
         pageSize: getLiveQueryPageSize(state),
+        ...(state.isSpicychat ? {
+            spicychatFilters: state.spicychatFilters,
+            tags: state.filters?.tags || [],
+            creator: state.filters?.creator || '',
+        } : {}),
     };
 }
 
 function syncProviderPaginationStateFromMeta(state, page, meta = {}) {
+    if (state.isSpicychat) {
+        spicychatApiState.page = page;
+        spicychatApiState.hasMore = !!meta.hasMore;
+        spicychatApiState.total = meta.total || 0;
+        return;
+    }
     if (state.isJannyAI) {
         jannyApiState.page = page;
         if (typeof meta.hasMore === 'boolean') jannyApiState.hasMore = meta.hasMore;
@@ -170,6 +181,7 @@ function syncProviderPaginationStateFromMeta(state, page, meta = {}) {
 }
 
 function getCurrentProviderPaginationMeta(state) {
+    if (state.isSpicychat) return { hasMore: spicychatApiState.hasMore, total: spicychatApiState.total };
     if (state.isJannyAI) {
         return { hasMore: jannyApiState.hasMore };
     }
@@ -235,6 +247,19 @@ function applyPagedCardsToState(state, cards, page, meta, extensionName, extensi
 }
 
 async function fetchServerPagedProviderPage(state, pageNum, extensionName, extension_settings) {
+    if (state.isSpicychat) {
+        const result = await searchSpicychat({
+            search: state.filters.search,
+            sort: getSpicychatSort(state.sortBy),
+            page: pageNum,
+            perPage: DEFAULT_LIVE_PAGE_SIZE,
+            filterNsfw: !!extension_settings[extensionName].hideNsfw,
+            ...state.spicychatFilters,
+            tags: state.filters.tags,
+            creator: state.filters.creator,
+        });
+        return { cards: result.characters.map(transformSpicychatCard), hasMore: result.hasMore, total: result.total };
+    }
     if (state.isJannyAI) {
         let jannySort = 'createdAtStamp:desc';
         switch (state.sortBy) {
@@ -491,6 +516,8 @@ async function loadPagedProviderPageIntoBrowser({ state, pageNum, menuContent, s
         },
     );
 
+    // A query can finish after the user changed filters or left this source.
+    if (getLiveQueryContext(state, extensionName, extension_settings)?.queryKey !== context.queryKey || (menuContent && !menuContent.isConnected)) return result;
     applyPagedCardsToState(state, result.cards, pageNum, result.meta, extensionName, extension_settings, {
         isRefreshing: false,
     });
@@ -639,7 +666,9 @@ function refreshLiveResultsCount(menuContent, state, extensionName, extension_se
     const loadingText = state.isRefreshing && (!Array.isArray(state.currentCards) || state.currentCards.length === 0) ? ' • loading…' : refreshingText;
 
     let text = '';
-    if (state.isJannyAI) {
+    if (state.isSpicychat) {
+        text = `Browsing SpicyChat - page ${spicychatApiState.page} (${Number(spicychatApiState.total).toLocaleString()} total)${nsfwText}${loadingText}`;
+    } else if (state.isJannyAI) {
         text = `Browsing JannyAI${nsfwText}${loadingText}`;
     } else if (state.isCharacterTavern) {
         text = `Browsing Character Tavern${nsfwText}${loadingText}`;
@@ -839,7 +868,9 @@ function createAllSourcesLiveSearchTasks({ query, hideNsfw }) {
             size: 24,
         }).then(result => withSource((result.characters || []).map(transformJoylandCard), 'joyland'))),
         task('SpicyChat', () => searchSpicychat({
-            search: text || includedTags.join(' '),
+            search: text,
+            tags: includedTags,
+            excludeTags: excludedTags,
             sort: SPICYCHAT_SORT_OPTIONS.TRENDING,
             filterNsfw: hideNsfw !== false,
             page: 1,
@@ -1086,8 +1117,9 @@ export async function createCardBrowser(serviceName, cards, state, extensionName
     state.isJoyland = serviceName === 'joyland' || cards.some(c => c.isJoyland || c.service === 'joyland');
     if (state.isJoyland && serviceName === 'joyland') resetJoylandState();
 
-    state.isSpicychat = serviceName === 'spicychat' || cards.some(c => c.isSpicychat || c.service === 'spicychat');
-    if (state.isSpicychat && serviceName === 'spicychat') resetSpicychatState();
+    // Mixed Search All results must not switch the entire browser into SpicyChat mode.
+    state.isSpicychat = serviceName === 'spicychat';
+    if (state.isSpicychat) state.spicychatFilters = { nsfwMode: 'all', publicOnly: false };
 
     state.isTalkie = serviceName === 'talkie' || cards.some(c => c.isTalkie || c.service === 'talkie');
     if (state.isTalkie && serviceName === 'talkie') resetTalkieState();
@@ -1145,6 +1177,8 @@ export async function createCardBrowser(serviceName, cards, state, extensionName
         state.filters = { search: '', tags: [], creator: '' };
         state.sortBy = extension_settings[extensionName].defaultSortBy || 'relevance';
     }
+
+    if (state.isSpicychat && !SPICYCHAT_BROWSER_SORTS[state.sortBy]) state.sortBy = 'relevance';
 
     // For JannyAI, sync the persisted search to jannyApiState so "load more" uses it
     if (state.isJannyAI && state.filters.search) {
@@ -1357,6 +1391,7 @@ export async function createCardBrowser(serviceName, cards, state, extensionName
     }
 
     const serviceDisplayName = serviceName === 'all' ? 'All Sources' :
+        serviceName === 'spicychat' ? 'SpicyChat' :
         serviceName === 'anchorhold' ? '4chan - /aicg/' :
             serviceName.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
@@ -1394,7 +1429,7 @@ export async function createCardBrowser(serviceName, cards, state, extensionName
     }
 
     // Inject service-specific controls (categories, sorts, filters) for new live APIs
-    if (state.isBotify || state.isJoyland || state.isSpicychat || state.isTalkie) {
+    if (state.isBotify || state.isJoyland || state.isTalkie) {
         const searchSection = menuContent.querySelector('#bot-browser-search-section');
         if (searchSection) {
             searchSection.insertAdjacentHTML('afterend', createServiceControlsHTML(state));
@@ -1402,7 +1437,9 @@ export async function createCardBrowser(serviceName, cards, state, extensionName
     }
 
     // Render first page immediately for better perceived performance
+    if (state.isSpicychat) setupSpicychatControls(menuContent, state, extensionName, extension_settings, showCardDetailFunc);
     renderPage(state, menuContent, showCardDetailFunc, extensionName, extension_settings);
+    if (state.isSpicychat) refreshLiveResultsCount(menuContent, state, extensionName, extension_settings);
 
     // Defer filter dropdown population to idle time (performance optimization)
     if (window.requestIdleCallback) {
@@ -1440,7 +1477,7 @@ export async function createCardBrowser(serviceName, cards, state, extensionName
     }
 
     // Add service control listeners for new live API services
-    if (state.isBotify || state.isJoyland || state.isSpicychat || state.isTalkie) {
+    if (state.isBotify || state.isJoyland || state.isTalkie) {
         setupServiceControlListeners(menuContent, state, extensionName, extension_settings, showCardDetailFunc);
     }
 
@@ -1508,6 +1545,50 @@ export async function createCardBrowser(serviceName, cards, state, extensionName
             });
         }, 10);
     }
+}
+
+async function reloadSpicychatResults(menuContent, state, extensionName, extension_settings, showCardDetailFunc) {
+    updateFilterUI(menuContent, state);
+    state.isRefreshing = true;
+    refreshLiveResultsCount(menuContent, state, extensionName, extension_settings);
+    try {
+        await loadPagedProviderPageIntoBrowser({ state, pageNum: 1, menuContent, showCardDetailFunc, extensionName, extension_settings });
+        savePersistentSearch(extensionName, extension_settings, state.currentService, state.filters, state.sortBy);
+    } catch (error) {
+        toastr.error(`SpicyChat search failed: ${error.message}`);
+    } finally {
+        state.isRefreshing = false;
+        refreshLiveResultsCount(menuContent, state, extensionName, extension_settings);
+    }
+}
+
+function setupSpicychatControls(menuContent, state, extensionName, extension_settings, showCardDetailFunc) {
+    const settings = extension_settings[extensionName];
+    const searchSection = menuContent.querySelector('#bot-browser-search-section');
+    searchSection.insertAdjacentHTML('beforeend', `
+        <div class="bot-browser-spicychat-controls">
+            <label for="bot-browser-spicychat-rating">Content
+                <select id="bot-browser-spicychat-rating">
+                    <option value="all">${settings.hideNsfw ? 'SFW only (global setting)' : 'All content'}</option>
+                    <option value="sfw">SFW only</option>
+                    <option value="nsfw" ${settings.hideNsfw ? 'disabled' : ''}>NSFW only</option>
+                </select>
+            </label>
+            <label class="bot-browser-checkbox"><input type="checkbox" id="bot-browser-spicychat-public"> Open definitions only</label>
+            <span class="bot-browser-spicychat-hint">Hidden definitions can only be imported with their public fields.</span>
+        </div>`);
+    const options = menuContent.querySelector('#bot-browser-sort-filter .bot-browser-multi-select-options');
+    options.innerHTML = Object.entries(SPICYCHAT_BROWSER_SORTS).map(([value, { label }]) => `
+        <div class="bot-browser-multi-select-option ${state.sortBy === value ? 'selected' : ''}" data-value="${value}"><i class="fa-solid fa-check"></i><span>${label}</span></div>`).join('');
+    updateFilterUI(menuContent, state);
+    menuContent.querySelector('#bot-browser-spicychat-rating').addEventListener('change', event => {
+        state.spicychatFilters.nsfwMode = event.target.value;
+        void reloadSpicychatResults(menuContent, state, extensionName, extension_settings, showCardDetailFunc);
+    });
+    menuContent.querySelector('#bot-browser-spicychat-public').addEventListener('change', event => {
+        state.spicychatFilters.publicOnly = event.target.checked;
+        void reloadSpicychatResults(menuContent, state, extensionName, extension_settings, showCardDetailFunc);
+    });
 }
 
 // Update filter dropdowns
@@ -1720,6 +1801,10 @@ function setupBrowserEventListeners(menuContent, state, extensionName, extension
     const searchInput = menuContent.querySelector('.bot-browser-search-input');
     searchInput.addEventListener('input', debounce(async (e) => {
         state.filters.search = e.target.value;
+        if (state.isSpicychat) {
+            await reloadSpicychatResults(menuContent, state, extensionName, extension_settings, showCardDetailFunc);
+            return;
+        }
         if (state.queryMode === LIVE_QUERY_MODES.paged && (state.isJannyAI || state.isCharacterTavern || state.isWyvern || state.isRisuRealm || state.isSaucepan || state.isBotbooru)) {
             try {
                 state.liveQuerySnapshot = null;
@@ -2053,6 +2138,13 @@ function setupBrowserEventListeners(menuContent, state, extensionName, extension
         state.filters = { search: '', tags: [], creator: '' };
         state.sortBy = 'relevance';
         searchInput.value = '';
+        if (state.isSpicychat) {
+            state.spicychatFilters = { nsfwMode: 'all', publicOnly: false };
+            menuContent.querySelector('#bot-browser-spicychat-rating').value = 'all';
+            menuContent.querySelector('#bot-browser-spicychat-public').checked = false;
+            await reloadSpicychatResults(menuContent, state, extensionName, extension_settings, showCardDetailFunc);
+            return;
+        }
 
         // Reset custom tag filter
         const tagTriggerText = menuContent.querySelector('#bot-browser-tag-filter .selected-text');
@@ -2623,6 +2715,12 @@ function setupCustomDropdown(container, state, filterType, extensionName, extens
         } else if (filterType === 'sort') {
             state.sortBy = value;
 
+            if (state.isSpicychat) {
+                void reloadSpicychatResults(document.querySelector('.bot-browser-content'), state, extensionName, extension_settings, showCardDetailFunc);
+                dropdown.classList.remove('open');
+                return;
+            }
+
             if (state.queryMode === LIVE_QUERY_MODES.paged && (state.isJannyAI || state.isCharacterTavern || state.isWyvern || state.isRisuRealm || state.isSaucepan || state.isBotbooru)) {
                 (async () => {
                     try {
@@ -2932,7 +3030,7 @@ function renderPage(state, menuContent, showCardDetailFunc, extensionName, exten
         : state.filteredCards.slice(startIndex, endIndex);
 
     // Create HTML for page cards
-    const cardsHTML = pageCards.map(card => createCardHTML(card)).join('');
+    const cardsHTML = createCardGrid(pageCards);
 
     // Create pagination HTML - for live APIs (Chub/JannyAI/CT/Wyvern) and trending, don't show total pages
     const chubApiState = state.isLorebooks ? getChubLorebooksApiState() : getChubApiState();
@@ -2982,7 +3080,7 @@ function renderPage(state, menuContent, showCardDetailFunc, extensionName, exten
     } else if (state.isJoyland) {
         paginationHTML = createChubPaginationHTML(1, joylandApiState.hasMore, false);
     } else if (state.isSpicychat) {
-        paginationHTML = createChubPaginationHTML(1, spicychatApiState.hasMore, false);
+        paginationHTML = createChubPaginationHTML(spicychatApiState.page, spicychatApiState.hasMore, false);
     } else if (state.isTalkie) {
         paginationHTML = createChubPaginationHTML(1, talkieApiState.hasMore, false);
     } else if (state.isAnchorhold) {
@@ -3292,6 +3390,24 @@ function setupAnchorholdPaginationListeners(gridContainer, state, menuContent, s
                 toastr.error('Failed to load more Anchorhold cards');
                 btn.disabled = false;
                 btn.innerHTML = 'Next <i class="fa-solid fa-angle-right"></i>';
+            }
+        });
+    });
+}
+
+function setupSpicychatPaginationListeners(gridContainer, state, menuContent, showCardDetailFunc, extensionName, extension_settings) {
+    gridContainer.querySelectorAll('.bot-browser-pagination-btn').forEach(button => {
+        button.addEventListener('click', async () => {
+            const current = state.lastVisitedPage || 1;
+            const previous = button.dataset.action === 'prev';
+            if ((previous && current <= 1) || (!previous && !spicychatApiState.hasMore)) return;
+            button.disabled = true;
+            try {
+                await loadPagedProviderPageIntoBrowser({ state, pageNum: current + (previous ? -1 : 1), menuContent, showCardDetailFunc, extensionName, extension_settings });
+            } catch (error) {
+                toastr.error(`SpicyChat page failed: ${error.message}`);
+            } finally {
+                button.disabled = false;
             }
         });
     });
@@ -3990,6 +4106,10 @@ function setupPaginationListeners(gridContainer, state, menuContent, showCardDet
 }
 
 export function refreshCardGrid(state, extensionName, extension_settings, showCardDetailFunc) {
+    if (state.isSpicychat) {
+        void reloadSpicychatResults(document.querySelector('.bot-browser-content'), state, extensionName, extension_settings, showCardDetailFunc);
+        return;
+    }
     const filteredCards = filterCards(state.currentCards, state.filters, state.fuse, extensionName, extension_settings);
     const sortedCards = sortCards(filteredCards, state.sortBy);
     const cardsWithImages = sortedCards.filter(card => {
@@ -4110,7 +4230,7 @@ function updateFilterUI(menuContent, state) {
         };
 
         if (sortTriggerText) {
-            sortTriggerText.textContent = sortLabels[state.sortBy] || 'Relevance';
+            sortTriggerText.textContent = (state.isSpicychat ? SPICYCHAT_BROWSER_SORTS[state.sortBy]?.label : sortLabels[state.sortBy]) || 'Relevance';
         }
 
         // Update selected state on options

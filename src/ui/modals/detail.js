@@ -15,7 +15,7 @@ import { getCrushonCharacter, transformFullCrushonCharacter } from '../../servic
 import { getHarpyCharacter, transformFullHarpyCharacter } from '../../services/apis/harpyApi.js';
 import { getBotifyBot, transformFullBotifyBot } from '../../services/apis/botifyApi.js';
 import { transformFullJoylandBot } from '../../services/apis/joylandApi.js';
-import { transformFullSpicychatCharacter } from '../../services/apis/spicychatApi.js';
+import { hydrateSpicychatCard } from '../../services/apis/spicychatApi.js';
 import { getTalkieCharacter, transformFullTalkieCharacter } from '../../services/apis/talkieApi.js';
 import { buildProxyUrl, filterProxyChainBySettings, PROXY_TYPES } from '../../services/corsProxy.js';
 import { showLocalCharacterEditor, showLocalLorebookEditor } from './localEditors.js';
@@ -364,9 +364,7 @@ async function loadFullCard(card) {
 
     const looksLikeSpicychatCard = card.isSpicychat || card.service === 'spicychat' || card.sourceService === 'spicychat';
     if (looksLikeSpicychatCard && card.isLiveApi) {
-        const transformed = transformFullSpicychatCharacter(card);
-        fullCard = { ...card, ...transformed, isSpicychat: true };
-        return fullCard;
+        return hydrateSpicychatCard(card);
     }
 
     const looksLikeTalkieCard = card.isTalkie || card.service === 'talkie' || card.sourceService === 'talkie';
@@ -524,6 +522,13 @@ function createDetailModal(fullCard, isRandom = false) {
             matchedRules: fullCard.antiSlopMatchedRules,
         }
     );
+
+    if (fullCard.isSpicychat && fullCard.definition_visible === false) {
+        const notice = document.createElement('div');
+        notice.className = 'bot-browser-api-warning bot-browser-spicychat-definition-warning';
+        notice.textContent = 'The creator has hidden this definition. Import includes only public information and the greeting; personality, scenario, and example dialogue are unavailable.';
+        detailModal.querySelector('.bot-browser-detail-actions-container').after(notice);
+    }
 
     return { detailOverlay, detailModal };
 }

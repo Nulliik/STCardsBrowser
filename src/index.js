@@ -73,8 +73,8 @@ import {
     JOYLAND_SORT_TYPES, JOYLAND_CATEGORIES
 } from './services/apis/joylandApi.js';
 import {
-    searchSpicychat, transformSpicychatCard, spicychatApiState, resetSpicychatState, transformFullSpicychatCharacter,
-    SPICYCHAT_SORT_OPTIONS
+    searchSpicychat, transformSpicychatCard, spicychatApiState, resetSpicychatState,
+    SPICYCHAT_BROWSER_SORTS, getSpicychatSort
 } from './services/apis/spicychatApi.js';
 import {
     browseTalkieCharacters, searchTalkieCharacters, transformTalkieCard, talkieApiState, resetTalkieState,
@@ -96,7 +96,7 @@ import {
 } from './services/corsProxy.js';
 
 // Extension version (from manifest.json)
-const EXTENSION_VERSION = '1.0.2';
+const EXTENSION_VERSION = '1.0.3';
 
 // Extension name and settings
 const extensionName = 'STCardsBrowser';
@@ -157,7 +157,8 @@ function getDefaultLiveAdvancedFilters(sourceName) {
 function getInitialLiveQueryDescriptor(sourceName) {
     const autoClear = extension_settings[extensionName].autoClearFilters !== false;
     const persistedSearch = autoClear ? null : loadPersistentSearch(extensionName, extension_settings, sourceName);
-    const sortBy = persistedSearch?.sortBy || extension_settings[extensionName].defaultSortBy || 'relevance';
+    let sortBy = persistedSearch?.sortBy || extension_settings[extensionName].defaultSortBy || 'relevance';
+    if (sourceName === 'spicychat' && !SPICYCHAT_BROWSER_SORTS[sortBy]) sortBy = 'relevance';
     const hideNsfw = !!extension_settings[extensionName].hideNsfw;
     const defaults = getDefaultLiveAdvancedFilters(sourceName);
 
@@ -182,6 +183,7 @@ function getInitialLiveQueryDescriptor(sourceName) {
         risuai_realm: { mode: 'paged', pageSize: 24 },
         saucepan: { mode: 'paged', pageSize: 24 },
         botbooru: { mode: 'paged', pageSize: 24 },
+        spicychat: { mode: 'paged', pageSize: 24 },
         chub: { mode: 'append', pageSize: 48 },
         chub_lorebooks: { mode: 'append', pageSize: 48 },
         anchorhold: { mode: 'append', pageSize: 20 },
@@ -206,6 +208,11 @@ function getInitialLiveQueryDescriptor(sourceName) {
         ctAdvancedFilters,
         wyvernAdvancedFilters,
         pageSize: providerMeta.pageSize,
+        ...(sourceName === 'spicychat' ? {
+            spicychatFilters: { nsfwMode: 'all', publicOnly: false },
+            tags: persistedSearch?.filters?.tags || [],
+            creator: persistedSearch?.filters?.creator || '',
+        } : {}),
     };
 
     return {
@@ -236,7 +243,6 @@ function shouldOpenSourceShellImmediately(sourceName) {
         'anchorhold',
         'botify',
         'joyland',
-        'spicychat',
         'talkie',
     ]).has(sourceName);
 }
@@ -1771,8 +1777,16 @@ function setupSourceButtons(menu) {
                     toastr.info('Loading SpicyChat.ai...', '', { timeOut: 2000 });
                     resetSpicychatState();
 
-                    const hideNsfw = extension_settings[extensionName].hideNsfw !== false;
-                    const result = await searchSpicychat({ sort: SPICYCHAT_SORT_OPTIONS.TRENDING, filterNsfw: hideNsfw, page: 1 });
+                    const autoClear = extension_settings[extensionName].autoClearFilters !== false;
+                    const saved = autoClear ? null : loadPersistentSearch(extensionName, extension_settings, sourceName);
+                    const result = await searchSpicychat({
+                        search: saved?.filters?.search || '',
+                        tags: saved?.filters?.tags || [],
+                        creator: saved?.filters?.creator || '',
+                        sort: getSpicychatSort(saved?.sortBy || extension_settings[extensionName].defaultSortBy),
+                        filterNsfw: !!extension_settings[extensionName].hideNsfw,
+                        page: 1,
+                    });
                     cards = result.characters.map(transformSpicychatCard);
                     spicychatApiState.page = 1;
                     spicychatApiState.hasMore = result.hasMore;
